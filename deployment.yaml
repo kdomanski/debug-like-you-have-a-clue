@@ -1,0 +1,26 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logalot
+  labels:
+    app: logalot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: logalot
+  template:
+    metadata:
+      labels:
+        app: logalot
+    spec:
+      containers:
+      - name: app
+        image: 'log/alot:latest'
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 80
+        env:
+        - name: LOG_LEVEL
+          value: "info"
