@@ -60,7 +60,7 @@ func startProcessing(numOfProducers, numOfConsumers int) {
 }
 
 func main() {
-	initLogging()
+	initLogging("/conf/log_level")
 
 	startProcessing(numOfProducers, numOfConsumers)
 

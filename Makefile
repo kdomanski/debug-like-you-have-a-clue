@@ -18,6 +18,7 @@ binary:
 	go build -v .
 
 deploy: image
+	kubectl apply -f config.yaml
 	kubectl apply -f deployment.yaml
 	kubectl delete -l app=logalot pod
 
