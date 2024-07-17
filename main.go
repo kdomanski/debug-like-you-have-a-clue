@@ -34,11 +34,11 @@ func processDataEntries(dataChan <-chan DataEntry) {
 			"source": datum.source,
 		})
 
-		log.Infof("decoding datum %s\n", datum.data)
+		log.Debugf("decoding datum %s\n", datum.data)
 		time.Sleep(10 * time.Millisecond)
-		log.Infof("calculating something based on datum %s\n", datum.data)
+		log.Debugf("calculating something based on datum %s\n", datum.data)
 		time.Sleep(35 * time.Millisecond)
-		log.Infof("comitting results for %s to memory\n", datum.data)
+		log.Debugf("comitting results for %s to memory\n", datum.data)
 		time.Sleep(15 * time.Millisecond)
 	}
 }
