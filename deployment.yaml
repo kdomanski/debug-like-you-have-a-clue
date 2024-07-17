@@ -24,3 +24,11 @@ spec:
         env:
         - name: LOG_LEVEL
           value: "debug"
+        volumeMounts:
+        - name: logalot-cfg
+          mountPath: "/conf"
+          readOnly: true
+      volumes:
+      - name: logalot-cfg
+        configMap:
+          name: logalot-cfg
