@@ -30,16 +30,15 @@ func loadDataDumpEntries(source int, dataChan chan<- DataEntry) {
 
 func processDataEntries(dataChan <-chan DataEntry) {
 	for datum := range dataChan {
-		// log := logrus.WithFields(logrus.Fields{
-		// 	"source": datum.source,
-		// })
-		_ = datum
+		log := logrus.WithFields(logrus.Fields{
+			"source": datum.source,
+		})
 
-		// log.Infof("decoding datum %s\n", datum.data)
+		log.Infof("decoding datum %s\n", datum.data)
 		time.Sleep(10 * time.Millisecond)
-		// log.Infof("calculating something based on datum %s\n", datum.data)
+		log.Infof("calculating something based on datum %s\n", datum.data)
 		time.Sleep(35 * time.Millisecond)
-		// log.Infof("comitting results for %s to memory\n", datum.data)
+		log.Infof("comitting results for %s to memory\n", datum.data)
 		time.Sleep(15 * time.Millisecond)
 	}
 }
