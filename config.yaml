@@ -3,5 +3,5 @@ kind: ConfigMap
 metadata:
   name: logalot-cfg
 data:
-  log_level: info
-  loader_log_level: debug
+  log_level: debug
+  log_debug_modules: "loader,parser"

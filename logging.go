@@ -3,6 +3,7 @@ package main
 import (
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/sirupsen/logrus"
@@ -18,30 +19,60 @@ func setLogLevelFromEnv(env string) {
 	}
 }
 
-func initLogging(levelPath string) {
-	go watchLogLevel(levelPath, logrus.StandardLogger())
+const logLevelMountPath = "/conf/log_level"
+const logDebugModulesMountPath = "/conf/log_debug_modules"
+
+func initLogging() {
+	go watchLogLevel(logrus.StandardLogger(), "main")
 
 	logrus.SetFormatter(&logrus.TextFormatter{
 		ForceColors: true,
 	})
 }
 
-func setLogLevelFromMount(path string, logger *logrus.Logger) logrus.Level {
-	data, err := ioutil.ReadFile(path)
+func isModuleInDebugList(moduleName string) bool {
+	data, err := ioutil.ReadFile(logDebugModulesMountPath)
 	if err != nil {
-		logrus.Panicf("reading log level from %q: %s", path, err)
+		logrus.Panicf("reading log debug modules from %q: %s", logDebugModulesMountPath, err)
+	}
+	debugModules := strings.Split(string(data), ",")
+
+	for _, module := range debugModules {
+		if moduleName == module {
+			return true
+		}
+	}
+	return false
+}
+
+func readLogLevelFromMount() logrus.Level {
+	data, err := ioutil.ReadFile(logLevelMountPath)
+	if err != nil {
+		logrus.Panicf("reading log level from %q: %s", logLevelMountPath, err)
 	}
 
 	lvl, err := logrus.ParseLevel(string(data))
 	if err != nil {
 		logrus.Panicf("parsing log level %q: %s", string(data), err)
 	}
+
+	return lvl
+}
+
+func setLogLevelFromMount(logger *logrus.Logger, moduleName string) logrus.Level {
+	lvl := readLogLevelFromMount()
+
+	if lvl >= logrus.DebugLevel && moduleName != "" && !isModuleInDebugList(moduleName) {
+		// If the module is not in the debug list, set the log level to Info
+		lvl = logrus.InfoLevel
+	}
+
 	logger.SetLevel(lvl)
 	return lvl
 }
 
-func watchLogLevel(filePath string, logger *logrus.Logger) {
-	setLogLevelFromMount(filePath, logger)
+func watchLogLevel(logger *logrus.Logger, moduleName string) {
+	setLogLevelFromMount(logger, moduleName)
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -49,9 +80,13 @@ func watchLogLevel(filePath string, logger *logrus.Logger) {
 	}
 	defer watcher.Close()
 
-	err = watcher.Add(filePath)
+	err = watcher.Add(logLevelMountPath)
 	if err != nil {
-		logrus.Panicf("watching path %q: %s", filePath, err)
+		logrus.Panicf("watching path %q: %s", logLevelMountPath, err)
+	}
+	err = watcher.Add(logDebugModulesMountPath)
+	if err != nil {
+		logrus.Panicf("watching path %q: %s", logDebugModulesMountPath, err)
 	}
 
 	for {
@@ -61,12 +96,17 @@ func watchLogLevel(filePath string, logger *logrus.Logger) {
 				return
 			}
 			if event.Has(fsnotify.Remove) {
-				if err = watcher.Add(filePath); err != nil {
-					logrus.Panicf("watching path %q: %s", filePath, err)
+				err = watcher.Add(logLevelMountPath)
+				if err != nil {
+					logrus.Panicf("watching path %q: %s", logLevelMountPath, err)
+				}
+				err = watcher.Add(logDebugModulesMountPath)
+				if err != nil {
+					logrus.Panicf("watching path %q: %s", logDebugModulesMountPath, err)
 				}
 
-				setLogLevelFromMount(filePath, logger)
-				logrus.Warnf("updated watcher for: %q", filePath)
+				setLogLevelFromMount(logger, moduleName)
+				logrus.Warnf("updated log level watchers for module %q", moduleName)
 			}
 		case err, ok := <-watcher.Errors:
 			if !ok {
@@ -77,13 +117,13 @@ func watchLogLevel(filePath string, logger *logrus.Logger) {
 	}
 }
 
-func newCustomLogger(logLevelMountPath string) *logrus.Logger {
+func newCustomLogger(moduleName string) *logrus.Logger {
 	logger := logrus.New()
 	logger.SetFormatter(&logrus.TextFormatter{
 		ForceColors: true,
 	})
 	logger.SetOutput(os.Stdout)
 
-	go watchLogLevel(logLevelMountPath, logger)
+	go watchLogLevel(logger, moduleName)
 	return logger
 }
