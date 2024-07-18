@@ -15,7 +15,7 @@ image: binary check-docker-context
 
 .PHONY: binary
 binary:
-	go build -v .
+	CGO_ENABLED=0 go build -v .
 
 deploy: image
 	kubectl apply -f config.yaml
