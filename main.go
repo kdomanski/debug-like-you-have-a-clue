@@ -49,7 +49,7 @@ const numOfConsumers = 5
 func startProcessing(numOfProducers, numOfConsumers int) {
 	dataChan := make(chan DataEntry)
 
-	loaderLogger := newCustomLogger("/conf/loader_log_level")
+	loaderLogger := newCustomLogger("loader")
 
 	for i := 0; i < numOfProducers; i++ {
 		go loadDataDumpEntries(i, dataChan, loaderLogger)
@@ -62,7 +62,7 @@ func startProcessing(numOfProducers, numOfConsumers int) {
 }
 
 func main() {
-	initLogging("/conf/log_level")
+	initLogging()
 
 	startProcessing(numOfProducers, numOfConsumers)
 
