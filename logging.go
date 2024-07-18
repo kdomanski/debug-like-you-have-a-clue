@@ -19,14 +19,14 @@ func setLogLevelFromEnv(env string) {
 }
 
 func initLogging(levelPath string) {
-	go watchLogLevel(levelPath)
+	go watchLogLevel(levelPath, logrus.StandardLogger())
 
 	logrus.SetFormatter(&logrus.TextFormatter{
 		ForceColors: true,
 	})
 }
 
-func setLogLevelFromMount(path string) logrus.Level {
+func setLogLevelFromMount(path string, logger *logrus.Logger) logrus.Level {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		logrus.Panicf("reading log level from %q: %s", path, err)
@@ -36,12 +36,12 @@ func setLogLevelFromMount(path string) logrus.Level {
 	if err != nil {
 		logrus.Panicf("parsing log level %q: %s", string(data), err)
 	}
-	logrus.SetLevel(lvl)
+	logger.SetLevel(lvl)
 	return lvl
 }
 
-func watchLogLevel(filePath string) {
-	setLogLevelFromMount(filePath)
+func watchLogLevel(filePath string, logger *logrus.Logger) {
+	setLogLevelFromMount(filePath, logger)
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -65,7 +65,7 @@ func watchLogLevel(filePath string) {
 					logrus.Panicf("watching path %q: %s", filePath, err)
 				}
 
-				setLogLevelFromMount(filePath)
+				setLogLevelFromMount(filePath, logger)
 				logrus.Warnf("updated watcher for: %q", filePath)
 			}
 		case err, ok := <-watcher.Errors:
@@ -75,4 +75,15 @@ func watchLogLevel(filePath string) {
 			logrus.Warnf("error: %+v", err)
 		}
 	}
+}
+
+func newCustomLogger(logLevelMountPath string) *logrus.Logger {
+	logger := logrus.New()
+	logger.SetFormatter(&logrus.TextFormatter{
+		ForceColors: true,
+	})
+	logger.SetOutput(os.Stdout)
+
+	go watchLogLevel(logLevelMountPath, logger)
+	return logger
 }

@@ -12,14 +12,14 @@ type DataEntry struct {
 	data   string
 }
 
-func loadDataDumpEntries(source int, dataChan chan<- DataEntry) {
-	log := logrus.WithFields(logrus.Fields{
+func loadDataDumpEntries(source int, dataChan chan<- DataEntry, logger *logrus.Logger) {
+	log := logger.WithFields(logrus.Fields{
 		"source": source,
 	})
 	for {
 		ms_sleep := time.Duration(200 + rand.Intn(500))
 		time.Sleep(ms_sleep * time.Millisecond)
-		log.Infof("successfully loaded entry")
+		log.Debugf("successfully loaded entry")
 		datum := RandStringRunes(12)
 		dataChan <- DataEntry{
 			source: source,
@@ -49,8 +49,10 @@ const numOfConsumers = 5
 func startProcessing(numOfProducers, numOfConsumers int) {
 	dataChan := make(chan DataEntry)
 
+	loaderLogger := newCustomLogger("/conf/loader_log_level")
+
 	for i := 0; i < numOfProducers; i++ {
-		go loadDataDumpEntries(i, dataChan)
+		go loadDataDumpEntries(i, dataChan, loaderLogger)
 	}
 
 	for i := 0; i < numOfConsumers; i++ {
